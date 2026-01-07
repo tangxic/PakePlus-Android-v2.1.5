@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FlowFocus V6 - Stable</title>
+    <title>NeuroSpark</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏳</text></svg>">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -17,13 +19,29 @@
         .font-mono-nums { font-variant-numeric: tabular-nums; }
         .progress-bar { transition: width 1s linear; }
         
-        /* 底部导航栏选中态动画 */
         .nav-item { transition: color 0.2s; position: relative; }
         .nav-item.active { color: #0d9488; }
         .nav-item.active::after {
             content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
             width: 4px; height: 4px; background: #0d9488; border-radius: 50%;
         }
+        
+        .focus-bg-gradient { background: #0d9488; } 
+        .text-gold { color: #fcd34d; }
+        .checkbox-anim { transition: all 0.2s ease; }
+        .checkbox-anim:checked { background-color: #6366f1; border-color: #6366f1; }
+
+        .slide-up-enter { transform: translateY(100%); }
+        .slide-up-enter-active { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); transform: translateY(0); }
+        .slide-up-leave { transform: translateY(0); }
+        .slide-up-leave-active { transition: transform 0.2s ease-in; transform: translateY(100%); }
+        
+        .animate-scale-up { animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .ai-gradient { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); }
+        .typing-cursor::after { content: '|'; animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
     
     <script>
@@ -32,9 +50,13 @@
                 extend: {
                     colors: {
                         neuro: '#0d9488', 
+                        'neuro-light': '#ccfbf1',
                         'neuro-dark': '#0f766e',
                         surface: '#ffffff',
                         background: '#f4f6f8',
+                        todo: '#6366f1',
+                        danger: '#e89da2',
+                        ai: '#8b5cf6',
                     }
                 }
             }
@@ -48,80 +70,89 @@
 
         <div x-show="view === 'dashboard'" class="flex-1 flex flex-col h-full overflow-hidden relative">
             
-            <div class="pt-10 pb-4 px-6 bg-surface z-20 shadow-sm flex justify-between items-center sticky top-0">
-                <div class="flex items-center gap-2 text-neuro">
-                    <svg class="w-6 h-6 transform rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                    <h1 class="text-xl font-bold tracking-tight text-gray-800" x-text="activeTab === 'list' ? 'FlowFocus' : 'Profile'"></h1>
+            <div class="pt-10 pb-4 px-6 bg-surface z-20 shadow-sm flex justify-between items-center sticky top-0 shrink-0">
+                <div class="flex items-center gap-4">
+                    <button @click="showSettings = true" class="text-gray-400 hover:text-gray-600 active-press">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </button>
+                    <button @click="showGuide = true" class="text-gray-400 hover:text-neuro active-press">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    </button>
                 </div>
-                <button x-show="activeTab === 'you'" @click="clearHistory()" class="text-xs text-red-400 bg-red-50 px-2 py-1 rounded-lg">清空历史</button>
+                
+                <div class="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2" x-show="activeTab === 'list'">
+                    <svg class="w-6 h-6 text-neuro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 22h14"/>
+                        <path d="M5 2h14"/>
+                        <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/>
+                        <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>
+                    </svg>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-800">NeuroSpark</h1>
+                </div>
+                <div class="absolute left-1/2 transform -translate-x-1/2" x-show="activeTab === 'todo'">
+                    <h1 class="text-xl font-bold tracking-tight text-gray-800">Inbox</h1>
+                </div>
+                
+                <button @click="openAIModal()" class="flex items-center gap-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg shadow-indigo-200 active-press">
+                    <span>✨ AI 分解</span>
+                </button>
             </div>
 
-            <div class="flex-1 overflow-y-auto no-scrollbar relative pb-24">
-                
-                <div x-show="activeTab === 'list'" x-transition:enter="transition ease-out duration-200" class="p-5 space-y-4">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">My Routines</span>
-                    </div>
-
+            <div class="flex-1 overflow-y-auto no-scrollbar relative pb-28">
+                <div x-show="activeTab === 'list'" x-transition:enter="transition ease-out duration-200" class="p-4 space-y-3">
                     <template x-for="(routine, index) in routines" :key="routine.id">
-                        <div @click="openRoutine(index)" 
-                             class="bg-surface p-5 rounded-3xl shadow-sm border border-gray-100 active-press cursor-pointer relative group hover:border-neuro transition-all">
-                            
-                            <div class="flex gap-1 mb-3 opacity-20">
-                                <template x-for="i in routine.steps.length">
-                                    <div class="h-1 flex-1 bg-gray-800 rounded-full"></div>
-                                </template>
-                            </div>
-
-                            <div class="flex justify-between items-center">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-14 h-14 rounded-2xl bg-teal-50 text-3xl flex items-center justify-center shadow-inner" x-text="routine.emoji"></div>
-                                    <div>
-                                        <h3 class="font-bold text-lg text-gray-800 leading-tight" x-text="routine.title"></h3>
-                                        <div class="text-xs text-gray-400 mt-1"><span x-text="routine.steps.length"></span> steps • <span x-text="calculateTotalTime(routine)"></span> min</div>
+                        <div class="bg-surface p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between gap-3 active-press transition-all hover:border-neuro group">
+                            <div @click="openRoutine(index)" class="flex-1 flex items-center gap-3 min-w-0 cursor-pointer">
+                                <div class="w-12 h-12 rounded-xl bg-teal-50 text-2xl flex items-center justify-center shadow-inner shrink-0" x-text="routine.emoji"></div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex justify-between items-baseline pr-2">
+                                        <h3 class="font-bold text-base text-gray-800 leading-tight truncate" x-text="routine.title"></h3>
+                                    </div>
+                                    <div class="text-[10px] text-gray-400 mt-1 flex items-center gap-1.5">
+                                        <span x-text="routine.steps.length + ' steps'"></span>
+                                        <span class="w-0.5 h-0.5 bg-gray-300 rounded-full"></span>
+                                        <span x-text="calculateTotalTime(routine) + ' min'"></span>
+                                    </div>
+                                    <div class="flex gap-0.5 mt-1.5 opacity-20 h-0.5 w-20">
+                                        <template x-for="i in Math.min(routine.steps.length, 10)">
+                                            <div class="flex-1 bg-gray-800 rounded-full"></div>
+                                        </template>
                                     </div>
                                 </div>
-                                <div class="text-gray-300">→</div>
                             </div>
+                            <button @click.stop="deleteRoutine(index)" class="w-9 h-9 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors shrink-0 active:scale-90">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
                         </div>
                     </template>
-                    
-                    <div x-show="routines.length === 0" class="text-center py-10 text-gray-400 text-sm">
-                        点击下方 + 号创建你的第一个场景
-                    </div>
+                    <div x-show="routines.length === 0" class="text-center py-10 text-gray-400 text-sm">点击右上角 AI，点燃你的第一个火花</div>
                 </div>
 
-                <div x-show="activeTab === 'you'" x-cloak x-transition:enter="transition ease-out duration-200" class="p-5 space-y-6">
-                    
-                    <div class="bg-gray-800 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
-                        <div class="relative z-10">
-                            <div class="text-gray-400 text-xs font-bold uppercase mb-1">Total Sessions</div>
-                            <div class="text-4xl font-bold mb-4" x-text="history.length"></div>
-                            <div class="flex gap-4">
-                                <div>
-                                    <div class="text-gray-400 text-[10px] uppercase">Focus Time</div>
-                                    <div class="font-bold text-lg"><span x-text="calculateTotalHistoryTime()"></span> min</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="absolute right-0 bottom-0 w-32 h-32 bg-neuro rounded-full blur-3xl opacity-20 translate-y-10 translate-x-10"></div>
+                <div x-show="activeTab === 'todo'" x-cloak x-transition:enter="transition ease-out duration-200" class="p-5 pb-32">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-gray-800">Inbox</h3>
+                        <button @click="clearCompletedTodos()" class="text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full font-bold">清除完成</button>
                     </div>
-
-                    <div>
-                        <div class="text-sm font-bold text-gray-800 mb-3 ml-1">Recent Activity</div>
-                        <div class="space-y-3">
-                            <template x-for="record in history" :key="record.id">
-                                <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-2 h-2 rounded-full bg-neuro"></div>
-                                        <span class="font-medium text-gray-700" x-text="record.title"></span>
-                                    </div>
-                                    <span class="text-xs text-gray-400 font-mono" x-text="record.time"></span>
+                    <div class="space-y-1">
+                        <template x-for="(todo, index) in uncompletedTodos" :key="todo.id">
+                            <div class="flex items-center gap-3 py-3 px-1 border-b border-gray-50 bg-white">
+                                <input type="checkbox" @change="toggleTodo(todo.id)" class="w-5 h-5 rounded border-2 border-gray-300 text-todo focus:ring-todo checkbox-anim cursor-pointer">
+                                <input x-model="todo.text" @blur="saveTodos()" class="flex-1 bg-transparent border-none outline-none text-gray-800 font-medium text-base placeholder-gray-400" placeholder="添加待办...">
+                                <button @click="decomposeTodoWithAI(todo)" class="text-indigo-400 hover:text-indigo-600 p-1"><span class="text-xs">✨</span></button>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="mt-8" x-show="completedTodos.length > 0">
+                        <div class="flex items-center gap-2 mb-2 px-1 cursor-pointer select-none" @click="showCompletedTodos = !showCompletedTodos">
+                            <span class="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">已完成 <span x-text="completedTodos.length"></span></span>
+                        </div>
+                        <div x-show="showCompletedTodos" x-collapse class="space-y-1 opacity-60">
+                            <template x-for="todo in completedTodos" :key="todo.id">
+                                <div class="flex items-center gap-3 py-3 px-1 border-b border-gray-50">
+                                    <input type="checkbox" checked @change="toggleTodo(todo.id)" class="w-5 h-5 rounded border-2 border-gray-300">
+                                    <span class="flex-1 text-gray-500 line-through" x-text="todo.text"></span>
                                 </div>
                             </template>
-                            <div x-show="history.length === 0" class="text-center py-8 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
-                                暂无专注记录<br>去 List 页面开始专注吧！
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -129,27 +160,140 @@
 
             <div class="absolute bottom-0 left-0 w-full bg-surface border-t border-gray-100 h-20 px-6 flex justify-between items-center z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.02)]">
                 <button @click="activeTab = 'list'" class="nav-item flex flex-col items-center gap-1 w-16" :class="activeTab === 'list' ? 'active' : 'text-gray-400'">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                    <span class="text-[10px] font-bold">List</span>
+                    <span class="text-2xl">⚡</span>
+                    <span class="text-[10px] font-bold">Routines</span>
                 </button>
-                
-                <button @click="showNewRoutineForm = true" class="w-14 h-14 rounded-full bg-gradient-to-tr from-neuro-dark to-neuro text-white text-3xl shadow-lg shadow-teal-200/50 flex items-center justify-center active-press -mt-8 border-4 border-surface relative z-50">
+                <button @click="handleAddButton()" 
+                        class="w-14 h-14 rounded-full text-white text-3xl shadow-xl flex items-center justify-center active-press -mt-8 border-[4px] border-surface relative z-50 pb-1 transition-colors"
+                        :class="activeTab === 'list' ? 'bg-neuro shadow-teal-200/50' : 'bg-todo shadow-indigo-200/50'">
                     +
                 </button>
-
-                <button @click="activeTab = 'you'" class="nav-item flex flex-col items-center gap-1 w-16" :class="activeTab === 'you' ? 'active' : 'text-gray-400'">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                    <span class="text-[10px] font-bold">You</span>
+                <button @click="activeTab = 'todo'" class="nav-item flex flex-col items-center gap-1 w-16" :class="activeTab === 'todo' ? 'active text-todo' : 'text-gray-400'">
+                    <span class="text-2xl">📝</span>
+                    <span class="text-[10px] font-bold">Tasks</span>
                 </button>
             </div>
 
             <div x-show="showNewRoutineForm" x-cloak class="absolute inset-0 bg-black/40 z-[60] flex items-center justify-center p-6 backdrop-blur-sm" @click.self="showNewRoutineForm = false">
-                <div class="bg-surface w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-scale-up">
+                <div class="bg-surface w-full max-w-[90%] rounded-3xl p-6 shadow-2xl animate-scale-up">
                     <h3 class="font-bold text-lg mb-4 text-gray-800">新建专注场景</h3>
-                    <input x-model="newRoutineTitle" type="text" placeholder="给场景起个名字..." class="w-full bg-background p-4 rounded-xl mb-4 outline-none focus:ring-2 ring-neuro text-gray-800">
+                    <div class="flex gap-2 mb-4">
+                        <button @click="$dispatch('open-emoji-picker', { target: 'newRoutineEmoji' })" 
+                                class="w-14 h-14 bg-gray-50 rounded-xl text-3xl flex items-center justify-center border border-gray-200 shrink-0"
+                                x-text="newRoutineEmoji">
+                        </button>
+                        <input x-model="newRoutineTitle" type="text" placeholder="场景名称..." class="flex-1 min-w-0 bg-background px-4 rounded-xl outline-none focus:ring-2 ring-neuro text-gray-800">
+                    </div>
                     <div class="flex gap-3">
                         <button @click="showNewRoutineForm = false" class="flex-1 py-3 text-gray-500 font-bold bg-gray-100 rounded-xl">取消</button>
                         <button @click="createNewRoutine(); showNewRoutineForm = false" class="flex-1 bg-neuro text-white py-3 rounded-xl font-bold shadow-md">创建</button>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="showGuide" x-cloak class="absolute inset-0 bg-black/50 z-[90] flex items-center justify-center p-6 backdrop-blur-sm" @click.self="showGuide = false">
+                <div class="bg-surface w-full max-w-[90%] h-[80%] rounded-[2rem] p-6 shadow-2xl animate-scale-up flex flex-col overflow-hidden">
+                    <div class="flex justify-between items-center mb-4 shrink-0">
+                        <h3 class="font-black text-2xl text-gray-800">🧠 作战手册</h3>
+                        <button @click="showGuide = false" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">✕</button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto no-scrollbar space-y-6 pr-2">
+                        <div class="bg-indigo-50 p-5 rounded-2xl border border-indigo-100">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-2xl">🛡️</span>
+                                <h4 class="font-bold text-indigo-900">协议一：外包决策</h4>
+                            </div>
+                            <p class="text-sm text-indigo-800 leading-relaxed opacity-80">
+                                遇到“不想动”的困难任务（如写论文），<b>绝对不要自己建清单</b>。点击右上角 <span class="font-bold">✨AI 分解</span>，让“赛博教官”替你发号施令。你只是一个无情的执行机器。
+                            </p>
+                        </div>
+                        <div class="bg-teal-50 p-5 rounded-2xl border border-teal-100">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-2xl">🌊</span>
+                                <h4 class="font-bold text-teal-900">协议二：流体动力学</h4>
+                            </div>
+                            <p class="text-sm text-teal-800 leading-relaxed opacity-80">
+                                完美主义是陷阱。盯着步骤超过 1 分钟没动？立即点右下角 <span class="font-bold">SKIP</span>。跳过不是逃兵，是战术规避。保持进度的流动比死磕更重要。
+                            </p>
+                        </div>
+                        <div class="bg-orange-50 p-5 rounded-2xl border border-orange-100">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-2xl">🆘</span>
+                                <h4 class="font-bold text-orange-900">协议三：系统重启</h4>
+                            </div>
+                            <p class="text-sm text-orange-800 leading-relaxed opacity-80">
+                                大脑死机/僵住时，点专注页左侧的 <span class="font-bold">🆘 救命</span>。执行那个看起来很蠢的物理动作（如深蹲），这是强制重启前额叶的唯一开关。
+                            </p>
+                        </div>
+                        <div class="bg-purple-50 p-5 rounded-2xl border border-purple-100">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-2xl">🎧</span>
+                                <h4 class="font-bold text-purple-900">协议四：感官屏蔽</h4>
+                            </div>
+                            <p class="text-sm text-purple-800 leading-relaxed opacity-80">
+                                枯燥任务选 <b>咖啡馆/图书馆</b> (Body Doubling)。<br>
+                                极度专注选 <b>下雨/粉噪</b> (物理屏蔽)。<br>
+                                建立反射：戴上耳机 = 开工。
+                            </p>
+                        </div>
+                        <div class="text-center text-xs text-gray-400 pt-4 italic">
+                            “NeuroSpark: 你大脑的外置驱动程序。”
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="showSettings" x-cloak class="absolute inset-0 bg-black/40 z-[80] flex items-center justify-center p-6 backdrop-blur-sm" @click.self="showSettings = false">
+                <div class="bg-surface w-full max-w-[90%] rounded-3xl p-6 shadow-2xl animate-scale-up">
+                    <h3 class="font-bold text-lg mb-4 text-gray-800">⚙️ AI 设置</h3>
+                    <div class="space-y-3 mb-6">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 uppercase">Base URL</label>
+                            <input x-model="aiSettings.baseUrl" type="text" class="w-full bg-background px-3 py-2 rounded-lg text-sm border-none outline-none focus:ring-1 ring-neuro mt-1" placeholder="默认: https://api.siliconflow.cn/v1">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 uppercase">API Key</label>
+                            <input x-model="aiSettings.apiKey" type="password" class="w-full bg-background px-3 py-2 rounded-lg text-sm border-none outline-none focus:ring-1 ring-neuro mt-1" placeholder="sk-...">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 uppercase">Model Name</label>
+                            <input x-model="aiSettings.model" type="text" class="w-full bg-background px-3 py-2 rounded-lg text-sm border-none outline-none focus:ring-1 ring-neuro mt-1" placeholder="默认: Qwen/Qwen2.5-7B-Instruct">
+                        </div>
+                        <div class="text-[10px] text-gray-400 leading-tight">
+                            默认使用硅基流动 API (Qwen2.5) 以获得最佳速度和兼容性。请填入对应的 Key。
+                        </div>
+                    </div>
+                    <button @click="saveAISettings(); showSettings = false" class="w-full bg-gray-800 text-white py-3 rounded-xl font-bold shadow-md">保存配置</button>
+                </div>
+            </div>
+
+            <div x-show="showAIModalState" x-cloak class="absolute inset-0 bg-black/60 z-[70] flex items-center justify-center p-6 backdrop-blur-md" @click.self="!aiIsLoading ? showAIModalState = false : null">
+                <div class="bg-gray-900 w-full max-w-[90%] rounded-3xl p-6 shadow-2xl animate-scale-up border border-gray-700 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                    <div class="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl -ml-10 -mb-10"></div>
+                    
+                    <div class="relative z-10 text-white">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 class="font-bold text-xl">外置大脑连接中...</h3>
+                                <p class="text-gray-400 text-xs mt-1" x-text="aiSettings.apiKey ? 'Connecting to: ' + aiSettings.model : 'Demo Mode'"></p>
+                            </div>
+                            <button @click="showAIModalState = false" class="text-gray-500 hover:text-white" x-show="!aiIsLoading">✕</button>
+                        </div>
+                        <div x-show="!aiIsLoading">
+                            <div class="bg-gray-800 rounded-xl p-4 mb-4 border border-gray-700">
+                                <label class="text-gray-500 text-xs font-bold uppercase block mb-2">任务指令输入</label>
+                                <textarea x-model="aiPrompt" rows="2" class="w-full bg-transparent border-none outline-none text-white placeholder-gray-600 resize-none text-lg" placeholder="例如：写论文、收拾猪窝、不想动..."></textarea>
+                            </div>
+                            <button @click="runAIGeneration()" :disabled="!aiPrompt.trim()" class="w-full ai-gradient text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-500/30 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> 启动执行引擎
+                            </button>
+                        </div>
+                        <div x-show="aiIsLoading" class="py-8 text-center">
+                            <div class="w-16 h-16 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin mx-auto mb-6"></div>
+                            <div class="text-indigo-300 font-bold text-lg mb-2" x-text="aiPersona ? aiPersona + ' 正在部署战术...' : '正在部署战术...'"></div>
+                            <div class="text-gray-500 text-sm h-6 typing-cursor" x-text="aiLoadingText"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -157,119 +301,172 @@
 
         <div x-show="view === 'detail'" x-cloak class="flex-1 flex flex-col h-full bg-surface z-40 absolute inset-0">
             <div class="pt-10 pb-2 px-4 flex items-center justify-between sticky top-0 bg-surface/95 backdrop-blur z-30 border-b border-gray-50">
-                <button @click="view = 'dashboard'" class="text-gray-500 flex items-center gap-1 font-bold text-sm bg-gray-50 px-3 py-1.5 rounded-full">
-                    ← Back
-                </button>
-                <div class="flex flex-col items-center">
-                    <h2 class="font-bold text-lg text-gray-800" x-text="currentRoutine?.title"></h2>
+                <button @click="view = 'dashboard'" class="text-gray-500 flex items-center gap-1 font-bold text-sm bg-gray-50 px-3 py-1.5 rounded-full">← Back</button>
+                <div class="flex flex-col items-center cursor-pointer active-press" @click="renameRoutine()">
+                    <h2 class="font-bold text-lg text-gray-800 truncate max-w-[150px]" x-text="currentRoutine?.title"></h2>
                 </div>
                 <button @click="toggleEdit()" class="text-neuro font-bold text-sm px-2" x-text="isEditing ? '完成' : '编辑'"></button>
             </div>
-
+            
             <div class="px-5 py-3">
-                <div class="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-2 text-indigo-900 font-bold text-sm">
-                            <span class="animate-pulse">🎧</span> 白噪音 (无需联网)
-                        </div>
-                        <span class="text-xs text-indigo-400 font-mono" x-text="selectedNoiseType || '静音'"></span>
-                    </div>
-                    <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                        <template x-for="noise in noiseOptions" :key="noise.type">
-                            <button @click="selectNoise(noise.type)" 
-                                    class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border"
-                                    :class="selectedNoiseType === noise.type ? 'bg-indigo-500 text-white border-indigo-500 shadow-md' : 'bg-white text-gray-500 border-gray-200'">
-                                <span x-text="noise.icon"></span> <span x-text="noise.name"></span>
-                            </button>
-                        </template>
-                        <button onclick="document.getElementById('music-upload').click()" class="px-4 py-2 bg-white text-gray-500 border border-gray-200 rounded-xl text-xs font-bold whitespace-nowrap">
-                            📂 自定义
-                        </button>
-                        <input type="file" id="music-upload" accept="audio/*" class="hidden" @change="handleMusicUpload">
-                    </div>
-                </div>
-            </div>
+                 <div class="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100">
+                     <div class="flex items-center justify-between mb-3">
+                         <div class="flex items-center gap-2 text-indigo-900 font-bold text-sm"><span class="animate-pulse">🎧</span> 氛围音效</div>
+                         <span class="text-xs text-indigo-400 font-mono" x-text="selectedNoiseType || '静音'"></span>
+                     </div>
+                     <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                         <template x-for="noise in noiseOptions" :key="noise.type">
+                             <button @click="selectNoise(noise.type)" class="px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border" :class="selectedNoiseType === noise.type ? 'bg-indigo-500 text-white border-indigo-500 shadow-md' : 'bg-white text-gray-500 border-gray-200'"><span x-text="noise.icon"></span> <span x-text="noise.name"></span></button>
+                         </template>
+                         <button @click="triggerFileUpload()" class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border" :class="selectedNoiseType === 'custom' ? 'bg-indigo-500 text-white border-indigo-500 shadow-md' : 'bg-white text-gray-500 border-gray-200'">📂 自选 <span x-show="hasCustomAudio" class="text-[10px] ml-1 opacity-70">(已存)</span></button>
+                         <input type="file" id="music-upload" accept="audio/*" class="hidden" @change="handleMusicUpload">
+                     </div>
+                 </div>
+             </div>
 
             <div class="flex-1 overflow-y-auto no-scrollbar px-5 pb-32 space-y-3 pt-2">
+                <div x-show="currentRoutine?.isAI" class="text-xs font-bold text-indigo-400 uppercase tracking-widest text-center mb-2">✨ NeuroSpark Mission</div>
                 <template x-for="(step, index) in currentRoutine?.steps" :key="step.id">
                     <div class="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0 group">
-                        <div class="w-10 h-10 rounded-full bg-white border-2 border-gray-100 flex-shrink-0 flex items-center justify-center text-lg shadow-sm" x-text="step.emoji"></div>
+                        <div class="w-10 h-10 rounded-full bg-white border-2 border-gray-100 flex-shrink-0 flex items-center justify-center text-lg shadow-sm shrink-0" x-text="step.emoji"></div>
                         <div class="flex-1 min-w-0">
                             <div class="font-medium text-gray-800 truncate text-base" x-text="step.text"></div>
                             <div class="text-xs text-gray-400" x-text="step.duration + ' min'"></div>
                         </div>
-                        <button x-show="isEditing" @click="removeStep(index)" class="text-red-500 text-xs font-bold bg-red-50 px-3 py-1 rounded-full">删除</button>
+                        <button x-show="isEditing" @click="removeStep(index)" class="text-red-500 text-xs font-bold bg-red-50 px-3 py-1 rounded-full shrink-0">删除</button>
                     </div>
                 </template>
-
-                <div x-show="isEditing" class="mt-4 p-4 bg-gray-50 rounded-3xl border border-gray-200">
-                    <div class="flex gap-2 mb-2">
-                        <input x-model="newStepText" placeholder="新步骤名称" class="flex-1 px-4 py-3 rounded-xl border-none outline-none focus:ring-2 ring-neuro text-sm">
-                        <input x-model="newStepEmoji" placeholder="Emoji" class="w-14 text-center rounded-xl border-none outline-none text-sm">
+                <div x-show="isEditing" class="mt-4 p-4 bg-gray-50 rounded-[2rem] border border-gray-200">
+                    <div class="flex gap-2 mb-3">
+                        <button @click="$dispatch('open-emoji-picker', { target: 'newStepEmoji' })" class="w-14 h-14 bg-white rounded-2xl text-2xl flex items-center justify-center border border-gray-200 shadow-sm shrink-0" x-text="newStepEmoji"></button>
+                        <input x-model="newStepText" placeholder="新步骤名称" class="flex-1 min-w-0 px-5 py-3 rounded-2xl border-none outline-none focus:ring-2 ring-neuro text-sm shadow-sm">
                     </div>
-                    <div class="flex gap-2">
-                        <input x-model="newStepDuration" type="number" placeholder="min" class="w-20 px-4 rounded-xl border-none outline-none text-sm">
-                        <button @click="addStep()" class="flex-1 bg-neuro text-white rounded-xl text-sm font-bold">添加</button>
+                    <div class="flex gap-2 items-center">
+                        <input x-model="newStepDuration" type="number" placeholder="min" class="w-24 px-5 py-3 rounded-2xl border-none outline-none text-sm shadow-sm">
+                        <button @click="addStep()" class="flex-1 bg-neuro text-white py-3 rounded-2xl text-base font-bold shadow-md active-press flex items-center justify-center gap-2"><span>+ 添加</span></button>
                     </div>
                 </div>
             </div>
 
             <div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-white via-white to-transparent z-30">
-                <button @click="startFlow()" class="w-full bg-neuro hover:bg-neuro-dark text-white text-xl font-bold py-5 rounded-[1.5rem] shadow-xl shadow-teal-200/50 active-press transition-all">
-                    🚀 开始专注
-                </button>
+                <button @click="startFlow()" class="w-full bg-neuro hover:bg-neuro-dark text-white text-xl font-bold py-5 rounded-[1.5rem] shadow-xl shadow-teal-200/50 active-press transition-all">🚀 开始专注</button>
             </div>
         </div>
 
-        <div x-show="view === 'focus'" x-cloak class="flex-1 flex flex-col h-full absolute inset-0 bg-surface z-50">
-            <div class="pt-10 px-6 flex justify-between items-center">
-                <button @click="exitFlow()" class="bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-xs font-bold">✕ 退出</button>
-                <div x-show="selectedNoiseType" class="bg-indigo-50 text-indigo-500 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1">
-                    <span class="animate-spin-slow">🔊</span> <span x-text="selectedNoiseType"></span>
+        <div x-show="view === 'focus'" x-cloak class="flex-1 flex flex-col h-full absolute inset-0 bg-surface z-50 overflow-hidden">
+            <div class="shrink-0 pt-8 px-4 pb-2 bg-neuro-light/30 rounded-b-[2rem] mb-2">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 flex-1">
+                        <template x-for="(step, index) in currentRoutine?.steps" :key="step.id">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 shrink-0 border"
+                                 :class="index <= currentStepIndex ? 'bg-neuro border-neuro' : 'bg-gray-100 border-gray-200'">
+                                <svg x-show="index < currentStepIndex" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                <div x-show="index >= currentStepIndex" class="w-3 h-3 rounded-full" :class="index === currentStepIndex ? 'bg-white' : 'bg-gray-300'"></div>
+                            </div>
+                        </template>
+                    </div>
+                    <button @click="handleExitRequest()" class="ml-2 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 active-press">✕</button>
+                </div>
+                <div class="flex justify-between items-end px-1 pb-2 h-10">
+                    <div x-show="currentStepIndex > 0" x-transition.opacity>
+                        <div class="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Previous Step</div>
+                        <div class="font-bold text-sm text-gray-700 truncate max-w-[180px]" x-text="getPrevStepText()"></div>
+                    </div>
+                    <button x-show="currentStepIndex > 0" @click="previousStep()" class="text-xs font-bold text-gray-500 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100 active-press">
+                        Back to previous
+                    </button>
                 </div>
             </div>
 
-            <div class="flex-1 px-6 pt-6 pb-8 flex flex-col">
-                <div class="bg-neuro w-full rounded-[2.5rem] p-8 text-white shadow-2xl shadow-teal-200/50 flex flex-col justify-between relative overflow-hidden min-h-[55%] mb-6">
-                    <div class="flex justify-between items-start z-10">
-                        <div>
-                            <div class="text-teal-100 text-xs font-bold tracking-wider uppercase">CURRENT TASK</div>
-                            <div class="text-white font-medium opacity-80"><span x-text="currentStep?.duration"></span> min total</div>
-                        </div>
-                        <div class="text-5xl animate-bounce drop-shadow-md" x-text="currentStep?.emoji"></div>
+            <div class="flex-1 flex flex-col px-6 pb-4 min-h-0 relative">
+                <div class="w-full rounded-[2rem] p-5 text-white shadow-2xl shadow-teal-200/50 flex flex-col relative overflow-hidden flex-1 min-h-0 transition-all duration-1000"
+                     :style="getDynamicBackground()"
+                     :class="isPaused ? 'opacity-80 saturate-50 scale-[0.98]' : ''">
+                    <div class="flex justify-between items-start z-10 mb-2 shrink-0">
+                        <span class="text-white font-medium text-sm"><span x-text="currentStep?.duration"></span> min</span>
+                        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md"><span class="text-2xl" x-text="currentStep?.emoji"></span></div>
                     </div>
-                    <div class="z-10 mt-4">
-                        <div class="text-[5.5rem] font-mono-nums font-bold tracking-tighter leading-none mb-2 drop-shadow-sm" x-text="formatTime(timeLeft)">00:00</div>
-                        <h2 class="text-3xl font-bold leading-tight" x-text="currentStep?.text"></h2>
+                    <div class="z-10 shrink-0 my-auto">
+                        <div class="text-[4.5rem] leading-none font-mono-nums font-bold tracking-tighter drop-shadow-sm text-gold" x-text="formatTimeVideoStyle(timeLeft)">00:00</div>
                     </div>
-                    <div class="w-full h-6 bg-black/20 rounded-full mt-auto z-10 overflow-hidden backdrop-blur-sm border border-white/10">
-                        <div class="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)] rounded-full progress-bar" :style="`width: ${calculateStepProgress()}%`"></div>
+                    <div class="z-10 mt-2 mb-6 shrink-0 flex-1 overflow-y-auto no-scrollbar flex items-start">
+                        <h2 class="text-2xl font-bold leading-snug text-white" x-text="currentStep?.text"></h2>
                     </div>
-                    <div class="absolute -bottom-24 -right-24 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-                </div>
+                    
+                    <button @click="triggerStuck()" class="z-10 bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-2 px-4 rounded-full border border-white/30 backdrop-blur self-start mb-2 active:scale-95 transition-transform shrink-0">🆘 我卡住了</button>
 
-                <div class="mb-4 px-4">
-                    <div class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2 ml-1">Up Next</div>
-                    <div class="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                        <div class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-sm" x-text="getNextStepEmoji()"></div>
-                        <span class="text-gray-700 font-bold text-sm truncate" x-text="getNextStepText()"></span>
+                    <div class="w-full h-4 bg-black/20 rounded-full mt-auto z-10 shrink-0 overflow-hidden backdrop-blur-sm mb-1">
+                        <div class="h-full bg-white/90 rounded-full progress-bar shadow-[0_0_10px_rgba(255,255,255,0.3)]" :style="`width: ${calculateStepProgress()}%`"></div>
                     </div>
                 </div>
+                <div class="shrink-0 mt-4 px-1">
+                    <div class="text-gray-400 text-[10px] lowercase mb-1 font-bold">next step</div>
+                    <div class="font-bold text-gray-800 text-sm truncate" x-text="getNextStepText()"></div>
+                </div>
+            </div>
 
-                <div class="flex gap-3 mt-auto">
-                    <button @click="resetTimer()" class="p-5 rounded-[1.5rem] bg-gray-100 text-gray-500 font-bold active-press">↺</button>
-                    <button @click="completeStep()" class="flex-1 bg-gray-900 text-white font-bold rounded-[1.5rem] text-xl shadow-xl active-press">
-                        <span x-text="currentStepIndex === (currentRoutine?.steps.length - 1) ? '🎉 完成' : '下一步 →'"></span>
-                    </button>
+            <div class="shrink-0 h-28 px-8 flex items-center justify-between pb-6">
+                <button @click="togglePause()" class="flex flex-col items-center gap-1 text-gray-400 active-press w-16">
+                    <div class="w-12 h-12 rounded-full border-2 border-gray-200 flex items-center justify-center">
+                        <svg x-show="!isPaused" class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <svg x-show="isPaused" class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                    <span class="text-[10px] font-bold tracking-widest" x-text="isPaused ? 'RESUME' : 'PAUSE'"></span>
+                </button>
+                <button @click="completeStep()" class="w-20 h-20 bg-neuro rounded-full shadow-xl shadow-teal-200/50 flex items-center justify-center text-white active-press scale-110">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                </button>
+                <button @click="skipStep()" class="flex flex-col items-center gap-1 text-gray-400 active-press w-16">
+                    <div class="w-12 h-12 rounded-full border-2 border-gray-200 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                    </div>
+                    <span class="text-[10px] font-bold tracking-widest">SKIP</span>
+                </button>
+            </div>
+            
+            <div x-show="showStuckModal" x-cloak class="absolute inset-0 bg-black/60 z-[100] flex items-center justify-center p-6 backdrop-blur-sm" @click.self="showStuckModal = false">
+                <div class="bg-white w-full rounded-2xl p-6 shadow-2xl animate-scale-up text-center">
+                    <div class="text-4xl mb-4">🚑</div>
+                    <h3 class="font-bold text-xl text-gray-800 mb-2">紧急救援行动</h3>
+                    <p class="text-gray-500 mb-6 text-sm">大脑死机了？没关系，执行这个微行动重启系统：</p>
+                    <div class="bg-indigo-50 p-4 rounded-xl border-2 border-indigo-100 mb-6">
+                        <p class="text-indigo-900 font-bold text-lg" x-text="currentStuckAction"></p>
+                    </div>
+                    <button @click="showStuckModal = false" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg active-press">执行完毕，回归战斗！</button>
+                </div>
+            </div>
+
+            <div x-show="showExitModal" x-cloak class="absolute inset-0 bg-black/50 z-[100] flex items-end justify-center backdrop-blur-sm" @click.self="showExitModal = false">
+                <div class="bg-white w-full rounded-t-[2.5rem] p-8 pb-12 text-center" x-transition:enter="slide-up-enter-active" x-transition:leave="slide-up-leave-active">
+                    <h2 class="text-4xl font-black text-gray-900 mb-8 tracking-tight">are you sure?</h2>
+                    <button @click="exitFlow()" class="w-full bg-danger text-white font-bold text-lg py-4 rounded-2xl shadow-lg active-press mb-4">cancel</button>
+                    <button @click="showExitModal = false" class="text-gray-400 font-bold text-sm py-2">continue</button>
                 </div>
             </div>
         </div>
 
         <div x-show="view === 'summary'" x-cloak class="flex-1 flex flex-col items-center justify-center p-8 h-full absolute inset-0 bg-surface z-50 text-center">
-            <div class="text-8xl mb-6 animate-bounce">🌟</div>
-            <h2 class="text-4xl font-black text-gray-800 mb-2">Well Done!</h2>
-            <p class="text-gray-500 mb-10 text-lg">你完成了此次专注。</p>
-            <button @click="resetToDashboard()" class="w-full bg-neuro text-white text-xl font-bold py-5 rounded-[1.5rem] shadow-xl active-press">返回主页</button>
+            <div class="text-8xl mb-6 animate-bounce">🎁</div>
+            <h2 class="text-3xl font-black text-gray-800 mb-2">Mission Complete!</h2>
+            <div class="bg-yellow-50 p-6 rounded-2xl border-2 border-yellow-100 my-6 max-w-xs rotate-1 shadow-lg">
+                <div class="text-xs text-yellow-600 font-bold uppercase tracking-wider mb-2">Loot Drop</div>
+                <div class="text-gray-800 font-bold text-xl" x-text="rewardMessage"></div>
+            </div>
+            <button @click="resetToDashboard()" class="w-full bg-neuro text-white text-xl font-bold py-5 rounded-[1.5rem] shadow-xl active-press mt-4">Back to List</button>
+        </div>
+
+        <div x-show="showEmojiPicker" x-cloak class="absolute inset-0 bg-black/50 z-[90] flex items-end justify-center backdrop-blur-sm" @click.self="showEmojiPicker = false">
+            <div class="bg-surface w-full md:w-[90%] rounded-t-[2rem] p-6 shadow-2xl animate-slide-up h-[50%] flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-gray-800 text-lg">Select Icon</h3>
+                    <button @click="showEmojiPicker = false" class="text-gray-400 p-2">✕</button>
+                </div>
+                <div class="flex-1 overflow-y-auto grid grid-cols-5 gap-3 content-start pb-10">
+                    <template x-for="emoji in emojiList" :key="emoji">
+                        <button @click="selectEmoji(emoji)" class="text-2xl p-4 bg-gray-50 rounded-2xl hover:bg-teal-50 border border-gray-100"><span x-text="emoji"></span></button>
+                    </template>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -277,244 +474,122 @@
     <audio id="custom-player" loop></audio>
 
     <script>
+        // MOCK AI DATA
+        const AI_MOCK_DATA = { 'default': { emoji: '⚡', steps: [['深呼吸', '🧘', 1], ['清理桌面', '🧹', 2], ['列出第一步', '📝', 2], ['专注执行A', '🔥', 10], ['喝水休息', '🥤', 2], ['专注执行B', '🔥', 10]] } };
+
+        // DB Setup
+        const DB_NAME = 'NeuroSparkDB', STORE_NAME = 'audioStore';
+        function initDB() { return new Promise((res, rej) => { const r = indexedDB.open(DB_NAME, 1); r.onerror = rej; r.onsuccess = e => res(e.target.result); r.onupgradeneeded = e => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) e.target.result.createObjectStore(STORE_NAME); }; }); }
+        async function saveAudioToDB(file) { const db = await initDB(); return new Promise((res, rej) => { const r = new FileReader(); r.onload = e => { db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(e.target.result, 'customBGM'); res(); }; r.readAsDataURL(file); }); }
+        async function getAudioFromDB() { const db = await initDB(); return new Promise(res => { const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get('customBGM'); req.onsuccess = e => res(e.target.result); req.onerror = () => res(null); }); }
+
         function flowApp() {
             return {
-                view: 'dashboard',
-                activeTab: 'list', // 'list' | 'you'
-                showNewRoutineForm: false,
-                routines: [],
-                history: [],
-                currentRoutineIndex: 0,
-                currentStepIndex: 0,
-                timeLeft: 0,
-                timer: null,
-                isEditing: false,
+                view: 'dashboard', activeTab: 'list', showNewRoutineForm: false, showEmojiPicker: false, emojiTarget: '',
+                showExitModal: false, isPaused: false, showAIModalState: false, showSettings: false, showGuide: false,
+                aiPrompt: '', aiIsLoading: false, aiLoadingText: '', aiPersona: '',
                 
-                newRoutineTitle: '',
-                newStepText: '', newStepEmoji: '✨', newStepDuration: 1,
+                showStuckModal: false, currentStuckAction: '',
+                stuckActions: ['站起来做5个深蹲', '喝一大口水', '闭眼深呼吸10秒', '把手机扔到床上', '用力伸个懒腰', '去洗把脸'],
+                rewardMessage: '', rewards: ['🎫 摸鱼券 (15分钟无罪恶感)', '🥤 奶茶召唤卡', '🎮 游戏启动特权', '🛌 午睡通行证', '🍿 零食补给包', '🏆 "专注王者" 称号'],
 
-                // 🔊 噪声生成器
-                audioContext: null,
-                noiseSource: null,
-                gainNode: null,
-                selectedNoiseType: '', // 'white', 'pink', 'brown', 'custom'
-                noiseOptions: [
-                    { name: '静音', icon: '🔇', type: '' },
-                    { name: '雨声', icon: '🌧️', type: 'brown' },
-                    { name: '白噪', icon: '📺', type: 'white' },
-                    { name: '粉噪', icon: '🌊', type: 'pink' }
-                ],
-
-                initApp() {
-                    const savedData = localStorage.getItem('flowfocus_v6_data');
-                    const savedHistory = localStorage.getItem('flowfocus_v6_history');
-                    
-                    if (savedData) {
-                        this.routines = JSON.parse(savedData);
-                    } else {
-                        this.routines = [
-                            {
-                                id: 1, title: '深度学习', emoji: '📚', 
-                                steps: [
-                                    { id: 101, text: '手机反扣桌上', emoji: '📴', duration: 1 },
-                                    { id: 102, text: '深呼吸', emoji: '🧘', duration: 1 },
-                                    { id: 103, text: '专注工作', emoji: '💻', duration: 25 }
-                                ]
-                            }
-                        ];
-                    }
-                    if (savedHistory) this.history = JSON.parse(savedHistory);
-                },
-
-                saveData() { localStorage.setItem('flowfocus_v6_data', JSON.stringify(this.routines)); },
-                saveHistory() { localStorage.setItem('flowfocus_v6_history', JSON.stringify(this.history)); },
-                clearHistory() { if(confirm('确定清空历史？')) { this.history = []; this.saveHistory(); } },
-
-                // --- 核心音频生成逻辑 (Web Audio API) ---
-                initAudioContext() {
-                    if (!this.audioContext) {
-                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    }
-                },
-
-                selectNoise(type) {
-                    this.selectedNoiseType = type;
-                    // 如果正在专注模式下切换，立即生效
-                    if (this.view === 'focus') {
-                        this.stopNoise();
-                        if (type) this.playNoise(type);
-                    }
-                },
-
-                handleMusicUpload(event) {
-                    const file = event.target.files[0];
-                    if (file) {
-                        this.selectedNoiseType = 'custom';
-                        const player = document.getElementById('custom-player');
-                        player.src = URL.createObjectURL(file);
-                        alert(`已加载: ${file.name}`);
-                    }
-                },
-
-                playNoise(type) {
-                    this.initAudioContext();
-                    
-                    // 如果是自定义文件
-                    if (type === 'custom') {
-                        document.getElementById('custom-player').play();
-                        return;
-                    }
-
-                    if (!type) return;
-
-                    // 创建白噪音 Buffer
-                    const bufferSize = 2 * this.audioContext.sampleRate;
-                    const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-                    const output = noiseBuffer.getChannelData(0);
-                    for (let i = 0; i < bufferSize; i++) {
-                        // Pink Noise 近似算法
-                        let white = Math.random() * 2 - 1;
-                        output[i] = (lastOut + (0.02 * white)) / 1.02;
-                        lastOut = output[i];
-                        output[i] *= 3.5; 
-                    }
-                    // 简单的白噪音生成
-                    if (type === 'white') {
-                       for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-                    }
-
-                    this.noiseSource = this.audioContext.createBufferSource();
-                    this.noiseSource.buffer = noiseBuffer;
-                    this.noiseSource.loop = true;
-                    this.gainNode = this.audioContext.createGain();
-                    
-                    // 滤波器模拟雨声 (Brown Noise)
-                    if (type === 'brown' || type === 'pink') {
-                        const filter = this.audioContext.createBiquadFilter();
-                        filter.type = 'lowpass';
-                        filter.frequency.value = type === 'brown' ? 400 : 1000;
-                        this.noiseSource.connect(filter);
-                        filter.connect(this.gainNode);
-                    } else {
-                        this.noiseSource.connect(this.gainNode);
-                    }
-
-                    this.gainNode.connect(this.audioContext.destination);
-                    this.gainNode.gain.value = 0.05; // 音量控制
-                    this.noiseSource.start();
-                },
-
-                stopNoise() {
-                    if (this.noiseSource) {
-                        this.noiseSource.stop();
-                        this.noiseSource = null;
-                    }
-                    document.getElementById('custom-player').pause();
-                },
-
-                // --- 业务逻辑 ---
-                openRoutine(index) { this.currentRoutineIndex = index; this.view = 'detail'; this.isEditing = false; },
+                aiSettings: { apiKey: '', baseUrl: 'https://api.siliconflow.cn/v1', model: 'Qwen/Qwen2.5-7B-Instruct' },
+                emojiList: ['✨','💪','📚','💻','🎧','☕','💧','🧘','🏃','💤','📝','📅','📊','📁','🔥','🎵','⏰','🏠','☀️','🌙','🎓','🧠','💡','🔋','🛑','🛁','👕','🧹','🥗','💊','🚗','💵','🎁','🎮','🎨','🐶','🌲'],
                 
-                createNewRoutine() {
-                    if(this.newRoutineTitle) {
-                        this.routines.push({ id: Date.now(), title: this.newRoutineTitle, emoji: '✨', steps: [] });
-                        this.newRoutineTitle = '';
-                        this.saveData();
-                    }
+                noiseOptions: [ {name:'静音',icon:'🔇',type:''}, {name:'白噪音',icon:'📺',type:'white'}, {name:'下雨',icon:'🌧️',type:'brown'}, {name:'粉红',icon:'🌊',type:'pink'}, {name:'咖啡馆',icon:'☕',type:'coffee'}, {name:'图书馆',icon:'📚',type:'library'} ],
+                audioContext: null, noiseSource: null, gainNode: null, selectedNoiseType: '', hasCustomAudio: false,
+
+                editingRoutineId: null, routines: [], todos: [],
+                currentRoutineIndex: 0, currentStepIndex: 0, timeLeft: 0, timer: null, isEditing: false,
+                newRoutineTitle: '', newRoutineEmoji: '✨', newStepText: '', newStepEmoji: '✨', newStepDuration: 1,
+                
+                get uncompletedTodos() { return this.todos.filter(t => !t.completed); },
+                get completedTodos() { return this.todos.filter(t => t.completed); },
+                showCompletedTodos: false,
+
+                async initApp() {
+                    const d = localStorage.getItem('neurospark_data');
+                    const t = localStorage.getItem('neurospark_todos');
+                    const s = localStorage.getItem('neurospark_settings');
+                    if (d) this.routines = JSON.parse(d); else this.routines = [{ id: 1, title: 'Deep Work', emoji: '📚', steps: [{ id: 101, text: 'Put away phone', emoji: '📴', duration: 1 }, { id: 102, text: 'Focus Task', emoji: '💻', duration: 25 }] }];
+                    if (t) this.todos = JSON.parse(t);
+                    if (s) this.aiSettings = JSON.parse(s);
+                    this.$el.addEventListener('open-emoji-picker', e => { this.emojiTarget = e.detail.target; this.showEmojiPicker = true; });
+                    const c = await getAudioFromDB(); if (c) { this.hasCustomAudio = true; document.getElementById('custom-player').src = c; }
                 },
 
-                addStep() {
-                    if(this.newStepText) {
-                        this.routines[this.currentRoutineIndex].steps.push({
-                            id: Date.now(), text: this.newStepText, emoji: this.newStepEmoji, duration: parseInt(this.newStepDuration)||1
-                        });
-                        this.newStepText = ''; this.saveData();
-                    }
+                saveData() { localStorage.setItem('neurospark_data', JSON.stringify(this.routines)); },
+                saveTodos() { localStorage.setItem('neurospark_todos', JSON.stringify(this.todos)); },
+                saveAISettings() { localStorage.setItem('neurospark_settings', JSON.stringify(this.aiSettings)); },
+
+                addTodo() { this.todos.unshift({ id: Date.now(), text: '', completed: false }); this.saveTodos(); },
+                toggleTodo(id) { const t = this.todos.find(x => x.id === id); if(t) { t.completed = !t.completed; this.saveTodos(); } },
+                clearCompletedTodos() { if(confirm('Clear completed?')) { this.todos = this.todos.filter(t => !t.completed); this.saveTodos(); } },
+
+                openAIModal() { this.aiPrompt = ''; this.showAIModalState = true; },
+                decomposeTodoWithAI(todo) { this.aiPrompt = todo.text; this.showAIModalState = true; },
+                async runAIGeneration() {
+                    this.aiIsLoading = true; this.aiLoadingText = "正在扫描情绪状态...";
+                    const personas = ['温柔管家', '赛博黑客', '魔鬼教官']; this.aiPersona = personas[Math.floor(Math.random() * personas.length)];
+                    if (!this.aiSettings.apiKey) { await this.runFakeAI(); return; }
+                    try {
+                        this.aiLoadingText = `${this.aiPersona} 正在部署任务...`;
+                        const SYSTEM_PROMPT = `你现在扮演：【${this.aiPersona}】。目标：为重度拖延症用户生成一份“无法拒绝”的任务攻略。\n\n【强制拆解规则】：\n1. **Step 0 情绪锚点**：第一步必须是"情绪调节"（如：深呼吸），时长0-1分钟。\n2. **Step 1 物理启动**：必须是极其简单的物理动作。\n3. **颗粒度**：总步骤 6-12 步。\n4. **结尾彩蛋**：最后一步必须包含物质奖励承诺。\n5. **语气**：符合【${this.aiPersona}】人设。\n\n输出格式 (纯JSON): { "title": "...", "emoji": "...", "steps": [ { "text": "...", "emoji": "...", "duration": 1 } ] }`;
+                        const res = await fetch(`${this.aiSettings.baseUrl}/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.aiSettings.apiKey}` }, body: JSON.stringify({ model: this.aiSettings.model, messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: this.aiPrompt }], temperature: 0.8, max_tokens: 2000, stream: false }) });
+                        if (!res.ok) throw new Error(`API Error: ${res.status}`);
+                        const data = await res.json();
+                        let content = data.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
+                        this.addGeneratedRoutine(JSON.parse(content));
+                    } catch (e) { alert("连接断开: " + e.message + "\n切换离线方案。"); await this.runFakeAI(); }
                 },
+                async runFakeAI() { const steps = ['载入后备能源...', '启动应急协议...']; for (const t of steps) { this.aiLoadingText = t; await new Promise(r => setTimeout(r, 600)); } const mock = AI_MOCK_DATA.default; const newR = { id: Date.now(), title: this.aiPrompt || "专注模式", emoji: mock.emoji, isAI: true, steps: mock.steps.map((s, i) => ({ id: Date.now()+i, text: s[0], emoji: s[1], duration: s[2] })) }; this.addGeneratedRoutine(newR); },
+                addGeneratedRoutine(data) { const newR = { id: Date.now(), title: data.title || "Mission", emoji: data.emoji || '✨', isAI: true, steps: (data.steps || []).map((s, i) => ({ id: Date.now()+i, text: s.text, emoji: s.emoji || '🔹', duration: parseInt(s.duration)||5 })) }; this.routines.unshift(newR); this.saveData(); this.aiIsLoading = false; this.showAIModalState = false; this.currentRoutineIndex = 0; this.startFlow(); },
 
-                removeStep(idx) {
-                    this.routines[this.currentRoutineIndex].steps.splice(idx, 1);
-                    this.saveData();
+                deleteRoutine(i) { if(confirm('放弃这个任务？')) { this.routines.splice(i, 1); this.saveData(); } },
+                renameRoutine() { const n = prompt("Rename:", this.currentRoutine.title); if(n) { this.currentRoutine.title = n; this.saveData(); } },
+                handleAddButton() { this.activeTab === 'list' ? this.showNewRoutineForm = true : this.addTodo(); },
+                selectEmoji(e) { if(this.emojiTarget === 'newRoutineEmoji') this.newRoutineEmoji = e; if(this.emojiTarget === 'newStepEmoji') this.newStepEmoji = e; this.showEmojiPicker = false; },
+                
+                openRoutine(i) { this.currentRoutineIndex = i; this.view = 'detail'; this.isEditing = false; },
+                createNewRoutine() { if(this.newRoutineTitle) { this.routines.push({ id: Date.now(), title: this.newRoutineTitle, emoji: this.newRoutineEmoji, steps: [] }); this.newRoutineTitle = ''; this.saveData(); } },
+                addStep() { if(this.newStepText) { this.routines[this.currentRoutineIndex].steps.push({ id: Date.now(), text: this.newStepText, emoji: this.newStepEmoji, duration: parseInt(this.newStepDuration)||1 }); this.newStepText = ''; this.saveData(); } },
+                removeStep(i) { this.routines[this.currentRoutineIndex].steps.splice(i, 1); this.saveData(); },
+
+                initAudioContext() { if (!this.audioContext) this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); },
+                selectNoise(t) { this.selectedNoiseType = t; if (this.view === 'focus') { this.stopNoise(); if (t) this.playNoise(t); } },
+                async triggerFileUpload() { if (this.hasCustomAudio && this.selectedNoiseType !== 'custom') this.selectNoise('custom'); else document.getElementById('music-upload').click(); },
+                async handleMusicUpload(e) { const f = e.target.files[0]; if (f) { if (f.size > 15e6) return alert("Max 15MB"); await saveAudioToDB(f); const d = await getAudioFromDB(); document.getElementById('custom-player').src = d; this.hasCustomAudio = true; this.selectNoise('custom'); } },
+                playNoise(t) {
+                    if (t === 'custom') { const p = document.getElementById('custom-player'); p.src ? p.play() : alert("No audio"); return; }
+                    this.initAudioContext(); if (!t) return;
+                    const b = this.audioContext.createBuffer(1, 2 * 44100, 44100); const o = b.getChannelData(0); let l = 0; for (let i=0; i<b.length; i++) { let w = Math.random()*2-1; if(t==='white') o[i]=w; else if(t==='coffee'||t==='library') { o[i]=(l+(0.05*w))/1.05; l=o[i]; o[i]*=4.5; } else { o[i]=(l+(0.02*w))/1.02; l=o[i]; o[i]*=3.5; } } this.noiseSource = this.audioContext.createBufferSource(); this.noiseSource.buffer = b; this.noiseSource.loop = true; this.gainNode = this.audioContext.createGain(); const f = this.audioContext.createBiquadFilter(); if(t==='brown'||t==='coffee') { f.type='lowpass'; f.frequency.value=400; } else if(t==='pink'||t==='library') { f.type='lowpass'; f.frequency.value=1000; } else f.type='allpass'; if(t!=='white') { this.noiseSource.connect(f); f.connect(this.gainNode); } else this.noiseSource.connect(this.gainNode); this.gainNode.gain.value = (t==='library')?0.02:0.05; this.gainNode.connect(this.audioContext.destination); this.noiseSource.start();
                 },
+                stopNoise() { if (this.noiseSource) { this.noiseSource.stop(); this.noiseSource = null; } document.getElementById('custom-player').pause(); },
 
-                startFlow() {
-                    if(!this.currentRoutine?.steps?.length) return alert('请添加步骤');
-                    this.currentStepIndex = 0;
-                    this.view = 'focus';
-                    this.loadStepTimer();
-                    this.playNoise(this.selectedNoiseType); // 播放生成噪音
-                },
-
-                loadStepTimer() {
-                    clearInterval(this.timer);
-                    this.timeLeft = this.currentStep.duration * 60;
-                    this.timer = setInterval(() => {
-                        if(this.timeLeft > 0) this.timeLeft--;
-                        else clearInterval(this.timer);
-                    }, 1000);
-                },
-
-                resetTimer() { this.timeLeft = this.currentStep.duration * 60; this.loadStepTimer(); },
-
-                completeStep() {
-                    if(this.currentStepIndex < this.currentRoutine.steps.length - 1) {
-                        this.currentStepIndex++;
-                        this.loadStepTimer();
-                    } else {
-                        this.finishFlow();
-                    }
-                },
-
-                finishFlow() {
-                    clearInterval(this.timer);
-                    this.stopNoise();
-                    this.view = 'summary';
-                    
-                    const now = new Date();
-                    this.history.unshift({
-                        id: Date.now(),
-                        title: this.currentRoutine.title,
-                        time: `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`
-                    });
-                    this.saveHistory();
-
-                    confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 }, colors: ['#0d9488', '#fcd34d'] });
-                },
-
-                exitFlow() {
-                    if(confirm('确定退出专注？')) {
-                        clearInterval(this.timer);
-                        this.stopNoise();
-                        this.view = 'detail';
-                    }
-                },
-
+                startFlow() { if(!this.currentRoutine?.steps?.length) return alert('No steps'); this.currentStepIndex = 0; this.view = 'focus'; this.isPaused = false; this.loadStepTimer(); this.playNoise(this.selectedNoiseType); },
+                loadStepTimer() { clearInterval(this.timer); this.timeLeft = this.currentStep.duration * 60; this.timer = setInterval(() => { if(!this.isPaused) { if(this.timeLeft > 0) this.timeLeft--; else clearInterval(this.timer); } }, 1000); },
+                togglePause() { this.isPaused = !this.isPaused; },
+                completeStep() { if(this.currentStepIndex < this.currentRoutine.steps.length - 1) { this.currentStepIndex++; this.loadStepTimer(); } else { this.finishFlow(); } },
+                skipStep() { this.completeStep(); },
+                previousStep() { if (this.currentStepIndex > 0) { this.currentStepIndex--; this.loadStepTimer(); } },
+                finishFlow() { clearInterval(this.timer); this.stopNoise(); this.rewardMessage = this.rewards[Math.floor(Math.random() * this.rewards.length)]; this.view = 'summary'; confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 }, colors: ['#0d9488', '#fcd34d'] }); },
+                
+                handleExitRequest() { this.showExitModal = true; },
+                exitFlow() { clearInterval(this.timer); this.stopNoise(); this.showExitModal = false; this.view = 'detail'; },
                 resetToDashboard() { this.view = 'dashboard'; },
                 toggleEdit() { this.isEditing = !this.isEditing; },
-
-                // Helpers
+                triggerStuck() { this.currentStuckAction = this.stuckActions[Math.floor(Math.random() * this.stuckActions.length)]; this.showStuckModal = true; },
+                getDynamicBackground() { if (!this.currentStep) return 'background: #0d9488'; const t = this.currentStep.duration * 60; const p = 1 - (this.timeLeft / t); const r = 13 + (p * (124 - 13)); const g = 148 - (p * (148 - 58)); const b = 136 + (p * (237 - 136)); return `background: linear-gradient(135deg, rgb(${r},${g},${b}) 0%, #1e1b4b 100%)`; },
+                
                 get currentRoutine() { return this.routines[this.currentRoutineIndex]; },
                 get currentStep() { return this.currentRoutine?.steps?.[this.currentStepIndex]; },
-                calculateTotalTime(r) { return r?.steps?.reduce((acc, curr) => acc + curr.duration, 0) || 0; },
-                calculateTotalHistoryTime() { return this.history.length * 25; }, // 估算值
-                formatTime(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; },
-                calculateStepProgress() {
-                    if(!this.currentStep) return 0;
-                    const total = this.currentStep.duration * 60;
-                    return ((total - this.timeLeft) / total) * 100;
-                },
-                getNextStepEmoji() { return this.currentRoutine?.steps?.[this.currentStepIndex + 1]?.emoji || '🏁'; },
-                getNextStepText() { return this.currentRoutine?.steps?.[this.currentStepIndex + 1]?.text || 'All Done!'; }
+                calculateTotalTime(r) { return r?.steps?.reduce((a, c) => a + c.duration, 0) || 0; },
+                formatTimeVideoStyle(s) { const m = Math.floor(s/60).toString().padStart(2,'0'); const sec = (s%60).toString().padStart(2,'0'); return `${m}:${sec}`; },
+                calculateStepProgress() { if(!this.currentStep) return 0; const t = this.currentStep.duration * 60; return ((t - this.timeLeft) / t) * 100; },
+                getNextStepText() { return this.currentRoutine?.steps?.[this.currentStepIndex + 1]?.text || 'All Done!'; },
+                getPrevStepText() { return this.currentRoutine?.steps?.[this.currentStepIndex - 1]?.text || ''; }
             }
         }
-        let lastOut = 0; // for pink noise
     </script>
-    
-    <style>
-        .animate-scale-up { animation: scaleUp 0.3s ease-out; }
-        @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .animate-spin-slow { animation: spin 3s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    </style>
 </body>
 </html>
